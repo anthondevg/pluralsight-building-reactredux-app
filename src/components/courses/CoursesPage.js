@@ -1,41 +1,72 @@
 import React, { Component } from "react";
+import { connect } from "react-redux";
+import * as courseActions from "../../redux/actions/courseAction";
+import * as authorActions from "../../redux/actions/authorActions";
+import { bindActionCreators } from "redux";
+import CouseList from "./CourseList";
 
-export default class CoursesPage extends Component {
-  state = {
-    course: {
-      title: "",
-    },
-  };
+class CoursesPage extends Component {
+  componentDidMount() {
+    const { courses, authors, actions } = this.props;
 
-  handleChange = (event) => {
-    // este paso es necesario para poder modificar los nested objects
-    // si simplemente se usa setState los nested objects no se actualizaran
-    // this.state.course.title es un nested object
+    if (courses.length === 0) {
+      actions.loadCourses().catch((error) => {
+        alert("loading courses failed!", error);
+      });
+    }
 
-    // spread operator crea una copia del estado y posteriormente se setea en el estado ese nuevo objeto
-    const course = { ...this.state.course, title: event.target.value };
-    this.setState({ course });
-  };
-  handleSubmit = (event) => {
-    event.preventDefault();
-    alert(this.state.course.title);
-    const course = { ...this.state.course, title: "" };
-    this.setState({
-      course,
-    });
-  };
+    if (authors.length === 0) {
+      actions.loadAuthors().catch((error) => {
+        alert("loading authors failed!", error);
+      });
+    }
+  }
   render() {
     return (
-      <form onSubmit={this.handleSubmit}>
+      <>
         <h2>Courses</h2>
-        <h3>Add Course</h3>
-        <input
-          type="text"
-          onChange={this.handleChange}
-          value={this.state.course.title}
-        />
-        <input type="submit" value="Add" />
-      </form>
+        <CouseList courses={this.props.courses} />
+      </>
     );
   }
 }
+
+function mapStateToProps(state) {
+  return {
+    courses:
+      state.authors.length === 0
+        ? []
+        : state.courses.map((course) => {
+            return {
+              ...course,
+              authorName: state.authors.find((a) => a.id === course.authorId)
+                .name,
+            };
+          }),
+    authors: state.authors,
+  };
+}
+
+// manual mapping
+// function mapDispatchToProps(dispatch) {
+//   return {
+//     createCourse: (course) => dispatch(courseActions.createCourse(course)),
+//   };
+// }
+
+// bindActionCreators
+function mapDispatchToProps(dispatch) {
+  return {
+    actions: {
+      loadCourses: bindActionCreators(courseActions.loadCourses, dispatch),
+      loadAuthors: bindActionCreators(authorActions.loadAuthors, dispatch),
+    },
+  };
+}
+
+// object form
+// const mapDispatchToProps = {
+//   createCourse: courseActions.createCourse,
+// };
+
+export default connect(mapStateToProps, mapDispatchToProps)(CoursesPage);
